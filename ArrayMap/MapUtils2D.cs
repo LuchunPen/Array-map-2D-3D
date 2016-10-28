@@ -17,10 +17,10 @@ namespace Nano3.Map
 
             TMap result = map.Create(new Vector2I(map.XSize, map.YSize));
             for (int x = 0; x < result.XSize; x++) {
-                int dx = mirX ? map.XSize - 1 - x : x;
+                int dx = mirX ? result.XSize - 1 - x : x;
                 for (int y = 0; y < result.YSize; y++) {
-                    int dy = mirY ? map.YSize - 1 - x : x;
-                    result[x, y] = map[dx, dy];
+                    int dy = mirY ? result.YSize - 1 - y : y;
+                    result[dx, dy] = map[x, y];
                 }
             }
             return result;
@@ -46,20 +46,20 @@ namespace Nano3.Map
             return result;
         }
 
-        public static TMap Scale<TMap, TValue>(TMap map, float scaleX, float scaleY)
+        public static TMap Scale<TMap, TValue>(TMap map, Vector2D scale)
             where TMap : IMap2<TValue>, ITypeCreator<TMap, Vector2I>
         {
             if (map == null) { return map; }
-            if (scaleX == 1 && scaleY == 1) { return map; }
+            if (scale.X == 1 && scale.Y == 1) { return map; }
 
-            Vector2I newsize = new Vector2I(Math.Floor(map.XSize * scaleX), Math.Floor(map.YSize * scaleY));
+            Vector2I newsize = new Vector2I(MathEx.FloorI(map.XSize * scale.X), MathEx.FloorI(map.YSize * scale.Y));
             TMap result = map.Create(newsize);
             for (int x = 0; x < newsize.X; x++) {
-                int ox = (int)(scaleX < 1 ? Math.Round(x / scaleX) : Math.Floor(x / scaleX));
+                int ox = scale.X < 1 ? MathEx.RoundI(x / scale.X) : MathEx.FloorI(x / scale.X);
                 if (x == newsize.X - 1 || ox >= map.XSize) { ox = map.XSize - 1; }
 
                 for (int y = 0; y < newsize.Y; y++) {
-                    int oy = (int)(scaleY < 1 ? Math.Round(y / scaleY) : Math.Floor(y / scaleY));
+                    int oy = scale.Y < 1 ? MathEx.RoundI(y / scale.Y) : MathEx.FloorI(y / scale.Y);
                     if (y == newsize.Y - 1 || oy >= map.YSize) { oy = map.YSize - 1; }
 
                     result[x, y] = map[ox, oy];
@@ -126,9 +126,9 @@ namespace Nano3.Map
 
             TMap result = map.Create(new Vector2I(map.XSize, map.YSize));
             for (int mx = 0; mx < result.XSize; mx++) {
-                int ox = ModM(mx - moveOffset.X, result.XSize);
+                int ox = MathEx.ModM(mx - moveOffset.X, result.XSize);
                 for (int my = 0; my < result.YSize; my++) {
-                    int oy = ModM(my - moveOffset.Y, result.YSize);
+                    int oy = MathEx.ModM(my - moveOffset.Y, result.YSize);
 
                     result[mx, my] = map[ox, oy];
                 }

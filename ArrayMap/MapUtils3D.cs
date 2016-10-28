@@ -4,7 +4,6 @@ Date: 26.09.2016 21:20:25
 */
 
 using System;
-using System.Collections.Generic;
 
 namespace Nano3.Map
 {
@@ -16,14 +15,14 @@ namespace Nano3.Map
             if (!mirX && !mirY && !mirZ) { return map; }
             if (map == null) { return map; }
 
-            TMap result = map;// map.Create(new Vector3I(map.XSize, map.YSize, map.ZSize));
+            TMap result = map.Create(new Vector3I(map.XSize, map.YSize, map.ZSize));
             for (int x = 0; x < result.XSize; x++) {
-                int dx = mirX ? map.XSize - 1 - x : x;
+                int dx = mirX ? result.XSize - 1 - x : x;
                 for (int y = 0; y < result.YSize; y++) {
-                    int dy = mirY ? map.YSize - 1 - x : x;
+                    int dy = mirY ? result.YSize - 1 - y : y;
                     for (int z = 0; z < result.ZSize; z++) {
-                        int dz = mirZ ? map.ZSize - 1 - z : z;
-                        result[x, y, z] = map[dx, dy, dz];
+                        int dz = mirZ ? result.ZSize - 1 - z : z;
+                        result[dx, dy, dz] = map[x, y, z];
                     }
                 }
             }
@@ -79,24 +78,24 @@ namespace Nano3.Map
             return result;
         }
 
-        public static TMap Scale<TMap, TValue>(TMap map, float scaleX, float scaleY, float scaleZ)
+        public static TMap Scale<TMap, TValue>(TMap map, Vector3D scale)
             where TMap : IMap3<TValue>, ITypeCreator<TMap, Vector3I>
         {
             if (map == null) { return map; }
-            if (scaleX == 1 && scaleY == 1 && scaleZ == 1) { return map; }
+            if (scale.X == 1 && scale.Y == 1) { return map; }
 
-            Vector3I newSize = new Vector3I(Math.Floor(map.XSize * scaleX), Math.Floor(map.YSize * scaleY), Math.Floor(map.ZSize * scaleZ));
+            Vector3I newSize = new Vector3I(MathEx.FloorI(map.XSize * scale.X), MathEx.FloorI(map.YSize * scale.Y), MathEx.FloorI(map.ZSize * scale.Z));
             TMap result = map.Create(newSize);
             for (int x = 0; x < newSize.X; x++) {
-                int ox = (int)(scaleX < 1 ? Math.Round(x / scaleX) : Math.Floor(x / scaleX));
+                int ox = scale.X < 1 ? MathEx.RoundI(x / scale.X) : MathEx.FloorI(x / scale.X);
                 if (x == newSize.X - 1 || ox >= map.XSize) { ox = map.XSize - 1; }
 
                 for (int y = 0; y < newSize.Y; y++) {
-                    int oy = (int)(scaleY < 1 ? Math.Round(y / scaleY) : Math.Floor(y / scaleY));
+                    int oy = scale.Y < 1 ? MathEx.RoundI(y / scale.Y) : MathEx.FloorI(y / scale.Y);
                     if (y == newSize.Y - 1 || oy >= map.YSize) { oy = map.YSize - 1; }
 
                     for (int z = 0; z < newSize.Z; z++) {
-                        int oz = (int)(scaleZ < 1 ? Math.Round(z / scaleZ) : Math.Floor(z / scaleZ));
+                        int oz = scale.Z < 1 ? MathEx.RoundI(z / scale.Z) : MathEx.FloorI(z / scale.Z);
                         if (z == newSize.Z - 1 || oz >= map.ZSize) { oz = map.ZSize - 1; }
                         result[x, y, z] = map[ox, oy, oz];
                     }
@@ -168,32 +167,16 @@ namespace Nano3.Map
 
             TMap result = map.Create(new Vector3I(map.XSize, map.YSize, map.ZSize));
             for (int mx = 0; mx < result.XSize; mx++) {
-                int ox = ModM(mx - moveOffset.X, result.XSize);
+                int ox = MathEx.ModM(mx - moveOffset.X, result.XSize);
                 for (int my = 0; my < result.YSize; my++) {
-                    int oy = ModM(my - moveOffset.Y, result.YSize);
+                    int oy = MathEx.ModM(my - moveOffset.Y, result.YSize);
                     for (int mz = 0; mz < result.ZSize; mz++) {
-                        int oz = ModM(mz - moveOffset.Z, result.ZSize);
+                        int oz = MathEx.ModM(mz - moveOffset.Z, result.ZSize);
                         result[mx, my, mz] = map[ox, oy, oz];
                     }
                 }
             }
             return result;
-        }
-
-        public static int ModM(int value, int mod)
-        {
-            int dv = value / mod;
-            int val = value - dv * mod;
-            if (val < 0) { val += mod; }
-            return val;
-        }
-
-        public static long ModM(long value, long mod)
-        {
-            long dv = value / mod;
-            long val = value - dv * mod;
-            if (val < 0) { val += mod; }
-            return val;
         }
     }
 }
