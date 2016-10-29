@@ -4,6 +4,7 @@ Date: 26.09.2016 21:20:25
 */
 
 using System;
+using System.Collections.Generic;
 
 namespace Nano3.Map
 {
@@ -104,6 +105,43 @@ namespace Nano3.Map
             return result;
         }
 
+        public static TMap CropEmpty3D<TMap, TValue>(TMap map, TValue emptyValue)
+            where TMap : IMap3<TValue>, ITypeCreator<TMap, Vector3I>
+            where TValue : IEquatable<TValue>
+        {
+            if (map == null) { return map; }
+            Vector3I voxelMapSize = new Vector3I(map.XSize, map.YSize, map.ZSize);
+            Vector3I start = new Vector3I(map.XSize, map.YSize, map.ZSize);
+            Vector3I end = new Vector3I(0, 0, 0);
+
+            for (int x = 0; x < map.XSize; x++) {
+                for (int y = 0; y < map.YSize; y++) {
+                    for (int z = 0; z < map.ZSize; z++) {
+                        if (map[x, y, z].Equals(emptyValue)) { continue; }
+                        if (start.X > x) { start.X = x; }
+                        if (start.Y > y) { start.Y = y; }
+                        if (start.Z > z) { start.Z = z; }
+                        if (end.X < x) { end.X = x; }
+                        if (end.Y < y) { end.Y = y; }
+                        if (end.Z < z) { end.Z = z; }
+                    }
+                }
+            }
+            end += new Vector3I(1, 1, 1);
+            Vector3I newSize = end - start;
+            if (newSize == voxelMapSize) { return map; }
+
+            TMap result = map.Create(newSize);
+            for (int x = start.X, dx = 0; x <= end.X; x++, dx++) {
+                for (int y = start.Y, dy = 0; y <= end.Y; y++, dy++) {
+                    for (int z = start.Z, dz = 0; z <= end.Z; z++, dz++) {
+                        result[dx, dy, dz] = map[x, y, z];
+                    }
+                }
+            }
+            return result;
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -177,6 +215,60 @@ namespace Nano3.Map
                 }
             }
             return result;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="fillAxis">Floodfill axis set [1] or [0] </param>
+        public static void FloodFill6<TMap, TValue>(TMap map, TValue from, TValue to, Vector3I startPoint, Vector3I fillAxis)
+            where TMap : IMap3<TValue>
+            where TValue : struct, IEquatable<TValue>
+        {
+            if (from.Equals(to)) { return; }
+
+            List<Vector3I>_openList = new List<Vector3I>();
+            Vector3I startPos = startPoint;
+            if (startPos.Y < 0) { startPos.Y = 0; }
+            else if (startPos.Y >= map.YSize) { startPos.Y = map.YSize - 1; }
+            if (startPoint.X < 0) { startPos.X = 0; }
+            else if (startPos.Y >= map.XSize) { startPos.X = map.XSize - 1; }
+            if (startPos.Z < 0) { startPos.Z = 0; }
+            else if (startPos.Z >= map.ZSize) { startPos.Z = map.ZSize - 1; }
+
+            List<Vector3I> o = new List<Vector3I>();
+            if (fillAxis.X != 0) {
+                o.Add(new Vector3I(-1, 0, 0));
+                o.Add(new Vector3I(1, 0, 0));
+            }
+            if (fillAxis.Y != 0) {
+                o.Add(new Vector3I(0, -1, 0));
+                o.Add(new Vector3I(0, 1, 0));
+            }
+            if (fillAxis.Z != 0) {
+                o.Add(new Vector3I(0, 0, -1));
+                o.Add(new Vector3I(0, 0, 1));
+            }
+
+            Vector3I[] offsets = o.ToArray();
+            map[startPos.X, startPos.Y, startPos.Z] = to;
+
+        NEXT:
+            for (int i = 0; i < offsets.Length; i++) {
+                Vector3I off = offsets[i];
+                Vector3I nPos = new Vector3I(startPos.X + off.X, startPos.Y + off.Y, startPos.Z + off.Z);
+                if (!map.IsBounded(nPos)) { continue; }
+                if (map[nPos.X, nPos.Y, nPos.Z].Equals(from)) {
+                    _openList.Add(nPos);
+                    map[nPos.X, nPos.Y, nPos.Z] = to;
+                }
+            }
+            int count = _openList.Count;
+            if (count > 0) {
+                startPos = _openList[count - 1];
+                _openList.RemoveAt(count - 1);
+                goto NEXT;
+            }
         }
     }
 }

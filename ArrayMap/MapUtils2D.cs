@@ -4,6 +4,7 @@ Date: 26.09.2016 20:43:38
 */
 
 using System;
+using System.Collections.Generic;
 
 namespace Nano3.Map
 {
@@ -91,7 +92,38 @@ namespace Nano3.Map
             }
             return result;
         }
-        
+
+        public static TMap CropEmpty2D<TMap, TValue>(TMap map, TValue emptyValue)
+            where TMap : IMap2<TValue>, ITypeCreator<TMap, Vector2I>
+            where TValue : IEquatable<TValue>
+        {
+            if (map == null) { return map; }
+            Vector2I voxelMapSize = new Vector2I(map.XSize, map.YSize);
+            Vector2I start = new Vector2I(map.XSize, map.YSize);
+            Vector2I end = new Vector2I(0, 0);
+
+            for (int x = 0; x < map.XSize; x++) {
+                for (int y = 0; y < map.YSize; y++) {
+                    if (map[x, y].Equals(emptyValue)) { continue; }
+                    if (start.X > x) { start.X = x; }
+                    if (start.Y > y) { start.Y = y; }
+                    if (end.X < x) { end.X = x; }
+                    if (end.Y < y) { end.Y = y; }
+                }
+            }
+            end += new Vector2I(1, 1);
+            Vector2I newSize = end - start;
+            if (newSize == voxelMapSize) { return map; }
+
+            TMap result = map.Create(newSize);
+            for (int x = start.X, dx = 0; x <= end.X; x++, dx++) {
+                for (int y = start.Y, dy = 0; y <= end.Y; y++, dy++) {
+                    result[dx, dy] = map[x, y];
+                }
+            }
+            return result;
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -134,6 +166,42 @@ namespace Nano3.Map
                 }
             }
             return result;
+        }
+
+        public static void FloodFill4<TMap, TValue>(TMap map, TValue from, TValue to, Vector2I startPoint)
+            where TMap : IMap2<TValue>
+            where TValue : struct, IEquatable<TValue>
+        {
+            if (from.Equals(to)) { return; }
+            List<Vector2I> _openList = new List<Vector2I>();
+            Vector2I startPos = startPoint;
+
+            if (startPos.Y < 0) { startPos.Y = 0; }
+            else if (startPos.Y >= map.YSize) { startPos.Y = map.YSize - 1; }
+            if (startPoint.X < 0) { startPos.X = 0; }
+            else if (startPos.Y >= map.XSize) { startPos.X = map.XSize - 1; }
+
+            Vector2I[] offsets = new Vector2I[4]{
+                new Vector2I(-1, 0), new Vector2I(1, 0), new Vector2I(0, -1), new Vector2I(0, 1)
+            };
+            map[startPos.X, startPos.Y] = to;
+
+        NEXT:
+            for (int i = 0; i < offsets.Length; i++) {
+                Vector2I off = offsets[i];
+                Vector2I nPos = new Vector2I(startPos.X + off.X, startPos.Y + off.Y);
+                if (!map.IsBounded(nPos)) { continue; }
+                if (map[nPos.X, nPos.Y].Equals(from)) {
+                    _openList.Add(nPos);
+                    map[nPos.X, nPos.Y] = to;
+                }
+            }
+            int count = _openList.Count;
+            if (count > 0) {
+                startPos = _openList[count - 1];
+                _openList.RemoveAt(count - 1);
+                goto NEXT;
+            }
         }
     }
 }
